@@ -40,6 +40,25 @@ docker run -p 8000:8000 racetag-backend
 docker run -e PORT=9000 -p 9000:9000 racetag-backend
 ```
 
+### Using Docker Compose
+
+You can also run it with Docker Compose. A `docker-compose.yml` is included.
+
+```
+# Optional: override the default port via environment
+# You can also copy .env.example to .env and edit it
+echo "RACETAG_PORT=9000" > .env
+
+# Build and start
+docker compose up --build -d
+
+# Logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
 Notes:
 - Storage is in-memory for MVP; replace with a DB for production.
 

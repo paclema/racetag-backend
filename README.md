@@ -17,7 +17,10 @@ Run locally this backend with:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
 uvicorn app:app --reload --host 0.0.0.0 --port 8000
+
+deactivate
 ```
 
 Using Docker:
@@ -50,10 +53,14 @@ Use a dedicated local virtualenv to generate Pydantic models from the spec. Sche
 To generate again the API models after redefitinion of the OpenAPI definition, the next command with create a Python env to build up the new `models_api.py`:
 
 ```
-python3 -m venv _codegen_venv
-./_codegen_venv/bin/python -m pip install --upgrade pip
-./_codegen_venv/bin/python -m pip install datamodel-code-generator pydantic==2.9.0
-./_codegen_venv/bin/datamodel-codegen --input openapi.yaml --input-file-type openapi --output models_api.py
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install datamodel-code-generator
+
+datamodel-codegen --input openapi.yaml --input-file-type openapi --output models_api.py
+
+deactivate
 ```
 
 Then import it in your domain source code with: `from models_api import TagEventDTO, ParticipantDTO, EventType`. Avoid overwriting domain code; keep business models in `domain/`.
@@ -84,9 +91,16 @@ If you want scaffolding for new endpoints from the spec, generate the server int
 Option A: fastapi-code-generator
 
 ```
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
 pip install fastapi-code-generator
 mkdir -p _gen/server
+
 fastapi-codegen --input openapi.yaml --output _gen/server
+
+deactivate
 ```
 
 Option B: OpenAPI Generator (python-fastapi)

@@ -20,6 +20,10 @@ pip install -r requirements.txt
 
 uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port 8000
 
+# Optional: choose a custom port
+export PORT=8000
+uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port ${PORT}
+
 deactivate
 ```
 
@@ -27,8 +31,13 @@ Using Docker:
 
 ```
 # Create a simple image running uvicorn
-# docker build -t racetag-backend .
-# docker run -p 8000:8000 racetag-backend
+docker build -t racetag-backend .
+
+# Default port
+docker run -p 8000:8000 racetag-backend
+
+# Custom port: map host 9000 -> container ${PORT}, pass PORT env
+docker run -e PORT=9000 -p 9000:9000 racetag-backend
 ```
 
 Notes:

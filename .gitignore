@@ -3,3 +3,5 @@ __pycache__
 
 _gen
 frontend-api/
+
+openapitools.json

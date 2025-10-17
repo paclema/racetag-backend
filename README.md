@@ -18,7 +18,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
+uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port 8000
 
 deactivate
 ```
@@ -58,7 +58,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 pip install datamodel-code-generator
 
-datamodel-codegen --input openapi.yaml --input-file-type openapi --output models_api.py
+datamodel-codegen --input openapi.yaml --input-file-type openapi --output racetag-backend/models_api.py
 
 deactivate
 ```
@@ -78,7 +78,7 @@ Using OpenAPI Generator CLI:
 openapi-generator-cli generate \
 	-i openapi.yaml \
 	-g typescript-fetch \
-	-o ../frontend-api \
+	-o ./frontend-api \
 	--additional-properties=typescriptThreePlus=true
 ```
 

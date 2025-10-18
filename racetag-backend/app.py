@@ -1,14 +1,24 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
 from typing import Any, Dict, List
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from domain.race import RaceState
-from models_api import EventType, TagEventDTO, ParticipantDTO
+from models_api import (
+    EventType,
+    TagEventDTO,
+    ParticipantDTO,
+    ClassificationDTO,
+    RaceDTO,
+    BatchIngestResultDTO,
+    TagEventBatchDTO,
+)
+
 
 
 app = FastAPI(title="Racetag Backend")
@@ -24,7 +34,7 @@ app.add_middleware(
 
 
 # Global single race for MVP
-race = RaceState(total_laps=20)
+race = RaceState(total_laps=5)
 
 # Debug/event store
 events: List[TagEventDTO] = []
@@ -37,10 +47,8 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
-@app.post("/events/tag/batch")
-def post_events_batch(batch: List[TagEventDTO]):
-    if not batch:
-        return JSONResponse({"accepted": 0})
+@app.post("/events/tag/batch", response_model=BatchIngestResultDTO)
+def post_events_batch(batch: TagEventBatchDTO):
     accepted = 0
     for ev in batch:
         events.append(ev)
@@ -73,14 +81,14 @@ def post_events_batch(batch: List[TagEventDTO]):
     return {"accepted": accepted}
 
 
-@app.get("/classification")
+@app.get("/classification", response_model=ClassificationDTO)
 def get_classification():
     # Current classification ordered by race rules
     items = [ParticipantDTO(**p.model_dump()).model_dump() for p in race.standings()]
     return {"count": len(items), "standings": items}
 
 
-@app.get("/race")
+@app.get("/race", response_model=RaceDTO)
 def get_race():
     return {
         "total_laps": race.total_laps,
@@ -102,7 +110,7 @@ def stream_events():
                 if last_idx < len(client_buf):
                     item = client_buf[last_idx]
                     last_idx += 1
-                    data = item
+                    data = json.dumps(item, separators=(",", ":"))
                     yield f"data: {data}\n\n"
                 else:
                     # heartbeat

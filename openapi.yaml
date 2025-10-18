@@ -13,36 +13,25 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/TagEventDTO'
+              $ref: '#/components/schemas/TagEventBatchDTO'
       responses:
         '200':
-          description: Batch accepted
+          description: Batch processed summary
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  accepted:
-                    type: integer
+                $ref: '#/components/schemas/BatchIngestResultDTO'
   /classification:
     get:
       summary: Current classification standings
+      description: Returns a snapshot of standings at request time. For live updates, subscribe to the Server-Sent Events stream at /stream.
       responses:
         '200':
           description: Standings ordered by race rules
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  count:
-                    type: integer
-                  standings:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ParticipantDTO'
+                $ref: '#/components/schemas/ClassificationDTO'
   /race:
     get:
       summary: Race state
@@ -52,17 +41,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  total_laps:
-                    type: integer
-                  start_time:
-                    type: string
-                    format: date-time
-                  participants:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ParticipantDTO'
+                $ref: '#/components/schemas/RaceDTO'
   /stream:
     get:
       summary: Server-Sent Events stream for live updates
@@ -111,6 +90,23 @@ components:
         last:
           type: string
           nullable: true
+
+    TagEventBatchDTO:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagEventDTO'
+
+    BatchIngestResultDTO:
+      type: object
+      required: [events_processed]
+      properties:
+        events_processed:
+          type: integer
+  
     ParticipantDTO:
       type: object
       required: [tag_id, laps, finished]
@@ -139,3 +135,26 @@ components:
           nullable: true
           description: Number of laps behind the leader (null or 0 if on same lap)
 
+    ClassificationDTO:
+      type: object
+      required: [count, standings]
+      properties:
+        count:
+          type: integer
+        standings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantDTO'
+
+    RaceDTO:
+      type: object
+      required: [total_laps, start_time, participants]
+      properties:
+        total_laps:
+          type: integer
+        start_time:
+          type: string
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantDTO'

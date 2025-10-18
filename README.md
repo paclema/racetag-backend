@@ -4,7 +4,7 @@ Minimal FastAPI backend to ingest race tag events, compute a race classification
 
 
 Endpoints:
-- POST /events/tag/batch: ingest a list of TagEvent payloads
+- POST /events/tag/batch: ingest a batch (body TagEventBatchDTO) and returns BatchIngestResultDTO with events_processed counter
 - GET /classification: current classification (ordered)
 - GET /race: race metadata and participants
 - GET /stream: Server-Sent Events stream of lap/standings updates

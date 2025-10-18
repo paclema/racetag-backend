@@ -130,3 +130,12 @@ components:
         total_time_ms:
           type: integer
           nullable: true
+        gap_ms:
+          type: integer
+          nullable: true
+          description: Time gap to the leader in milliseconds when on the same lap (0 for leader; null if lapped)
+        laps_behind:
+          type: integer
+          nullable: true
+          description: Number of laps behind the leader (null or 0 if on same lap)
+

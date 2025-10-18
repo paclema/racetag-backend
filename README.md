@@ -9,11 +9,14 @@ Endpoints:
 - GET /race: race metadata and participants
 - GET /stream: Server-Sent Events stream of lap/standings updates
 
+Notes:
+- `/classification` returns a snapshot of standings at the moment of the request. For live updates, use `/stream` (SSE).
+
 Send events from reader client running the `racetag-reader-service`. Follow the [quick start instructions](https://github.com/paclema/racetag-reader-service?tab=readme-ov-file#quick-start)
 
 Run locally this backend with:
 
-```
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -29,7 +32,7 @@ deactivate
 
 Using Docker:
 
-```
+```bash
 # Create a simple image running uvicorn
 docker build -t racetag-backend .
 
@@ -38,13 +41,17 @@ docker run -p 8000:8000 racetag-backend
 
 # Custom port: map host 9000 -> container ${PORT}, pass PORT env
 docker run -e PORT=9000 -p 9000:9000 racetag-backend
+
+# Optional: skip openapi model code generation (use existing racetag-backend/models_api.py)
+docker build --target runtime-nocodegen -t racetag-backend:nocodegen .
+docker run -p 8000:8000 racetag-backend:nocodegen
 ```
 
 ### Using Docker Compose
 
 You can also run it with Docker Compose. A `docker-compose.yml` is included.
 
-```
+```bash
 # Optional: override the default port via environment
 # You can also copy .env.example to .env and edit it
 echo "RACETAG_PORT=9000" > .env
@@ -80,7 +87,8 @@ Use a dedicated local virtualenv to generate Pydantic models from the spec. Sche
 
 To generate again the API models after redefitinion of the OpenAPI definition, the next command with create a Python env to build up the new `models_api.py`:
 
-```
+```bash
+python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
@@ -97,7 +105,7 @@ Then import it in your domain source code with: `from models_api import TagEvent
 
 Using OpenAPI Generator CLI:
 
-```
+```bash
 # Install once (requires Java)
 # brew install openapi-generator
 # or
@@ -118,7 +126,7 @@ If you want scaffolding for new endpoints from the spec, generate the server int
 
 Option A: fastapi-code-generator
 
-```
+```bash
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
@@ -133,7 +141,7 @@ deactivate
 
 Option B: OpenAPI Generator (python-fastapi)
 
-```
+```bash
 openapi-generator-cli generate \
 	-i openapi.yaml \
 	-g python-fastapi \

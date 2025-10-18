@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from domain.race import RaceState
@@ -11,6 +12,15 @@ from models_api import EventType, TagEventDTO, ParticipantDTO
 
 
 app = FastAPI(title="Racetag Backend")
+
+# CORS for local static frontend (adjust origins for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Global single race for MVP

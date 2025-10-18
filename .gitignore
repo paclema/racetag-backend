@@ -6,3 +6,5 @@ _codegen_venv/
 frontend-api/
 
 openapitools.json
+
+.env

@@ -1,7 +1,7 @@
 #############################################
 # Stage: codegen (generate API models from OpenAPI)
 #############################################
-FROM python:3.15-slim AS codegen
+FROM python:3.13.9-slim AS codegen
 
 # Install tools first so this layer is cached across builds
 RUN pip install --no-cache-dir --upgrade pip \
@@ -16,7 +16,7 @@ RUN mkdir -p /openapi_build \
 #############################################
 # Stage: runtime (app image with generated models)
 #############################################
-FROM python:3.15-slim AS runtime-base
+FROM python:3.13.9-slim AS runtime-base
 
 # Prevent Python from writing .pyc files and enable unbuffered logs
 ENV PYTHONDONTWRITEBYTECODE=1 \

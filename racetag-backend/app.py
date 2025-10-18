@@ -49,15 +49,18 @@ def _now_iso() -> str:
 
 @app.post("/events/tag/batch", response_model=BatchIngestResultDTO)
 def post_events_batch(batch: TagEventBatchDTO):
+    items = batch.events or []
+    if not items:
+        return {"events_processed": 0}
     accepted = 0
-    for ev in batch:
+    for ev in items:
         events.append(ev)
         accepted += 1
         # Update race on ARRIVE (simple rule for MVP)
         if ev.event_type == EventType.arrive:
             # Use event timestamp as the pass time
             p = race.add_lap(ev.tag_id, ev.timestamp)
-            # Broadcast lap update
+            # Broadcast lap update (always, laps keep advancing)
             lap_payload = {
                 "type": "lap",
                 "tag_id": p.tag_id,
@@ -70,7 +73,7 @@ def post_events_batch(batch: TagEventBatchDTO):
                     q.append(lap_payload)
                 except Exception:
                     pass
-            # Optionally broadcast new standings snapshot (lightweight)
+            # Broadcast updated standings snapshot
             table = [s.model_dump() for s in race.standings()]
             standings_payload = {"type": "standings", "items": table}
             for q in list(subscribers):
@@ -78,7 +81,7 @@ def post_events_batch(batch: TagEventBatchDTO):
                     q.append(standings_payload)
                 except Exception:
                     pass
-    return {"accepted": accepted}
+    return {"events_processed": accepted}
 
 
 @app.get("/classification", response_model=ClassificationDTO)

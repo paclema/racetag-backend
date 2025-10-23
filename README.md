@@ -21,10 +21,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port 8000
+uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port 8600
 
 # Optional: choose a custom port
-export PORT=8000
+export PORT=8600
 uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port ${PORT}
 
 deactivate
@@ -37,14 +37,14 @@ Using Docker:
 docker build -t racetag-backend .
 
 # Default port
-docker run -p 8000:8000 racetag-backend
+docker run -p 8600:8600 racetag-backend
 
 # Custom port: map host 9000 -> container ${PORT}, pass PORT env
 docker run -e PORT=9000 -p 9000:9000 racetag-backend
 
 # Optional: skip openapi model code generation (use existing racetag-backend/models_api.py)
 docker build --target runtime-nocodegen -t racetag-backend:nocodegen .
-docker run -p 8000:8000 racetag-backend:nocodegen
+docker run -p 8600:8600 racetag-backend:nocodegen
 ```
 
 ### Using Docker Compose

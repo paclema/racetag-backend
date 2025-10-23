@@ -6,9 +6,9 @@ services:
     image: racetag-backend:latest
     container_name: racetag-backend
     environment:
-      # Port inside the container, defaults to 8000 if RACETAG_PORT is not set
-      - PORT=${RACETAG_PORT:-8000}
+      # Port inside the container, defaults to 8600 if RACETAG_PORT is not set
+      - PORT=${RACETAG_PORT:-8600}
     ports:
-      # Map host port to container port using RACETAG_PORT (defaults to 8000)
-      - "${RACETAG_PORT:-8000}:${RACETAG_PORT:-8000}"
+      # Map host port to container port using RACETAG_PORT (defaults to 8600)
+      - "${RACETAG_PORT:-8600}:${RACETAG_PORT:-8600}"
     restart: unless-stopped

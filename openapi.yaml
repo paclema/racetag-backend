@@ -3,7 +3,7 @@ info:
   title: Racetag Backend API
   version: 0.1.0
 servers:
-  - url: http://localhost:8000
+  - url: http://localhost:8600
 paths:
   /events/tag/batch:
     post:

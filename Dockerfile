@@ -21,7 +21,7 @@ FROM python:3.13.9-slim AS runtime-base
 # Prevent Python from writing .pyc files and enable unbuffered logs
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
-	PORT=8000
+	PORT=8600
 
 # Set workdir to project root inside image
 WORKDIR /app
@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY . /app
 
 # Expose default uvicorn port (container runtime port). You can override with -p during docker run.
-EXPOSE 8000
+EXPOSE 8600
 
 # Move to the python package folder
 WORKDIR /app/racetag-backend

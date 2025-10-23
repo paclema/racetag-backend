@@ -1,6 +1,5 @@
 services:
   racetag-backend:
-    build: .
     image: racetag-backend:latest
     container_name: racetag-backend
     environment:

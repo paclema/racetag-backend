@@ -1,9 +1,10 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Racetag Backend API
   version: 0.1.0
 servers:
   - url: http://localhost:8600
+    description: Local Development Server
 paths:
   /events/tag/batch:
     post:

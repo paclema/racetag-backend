@@ -21,10 +21,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
+
 uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port 8600
 
-# Optional: choose a custom port
+# Optional: configure env variables first
 export PORT=8600
+export RACETAG_API_KEY=changeme
+
 uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port ${PORT}
 
 deactivate
@@ -49,13 +52,11 @@ docker run -p 8600:8600 racetag-backend:nocodegen
 
 ### Using Docker Compose
 
-You can also run it with Docker Compose. A `docker-compose.yml` is included.
+You can also run it with Docker Compose. Follow the [doker-compose.yml](docker-compose.yml) as reference.
+
+Check the default environment variables in [.env.example](.env.example) and create your own `.env` file to set them up if needed.
 
 ```bash
-# Optional: override the default port via environment
-# You can also copy .env.example to .env and edit it
-echo "RACETAG_PORT=9000" > .env
-
 # Build and start
 docker compose up --build -d
 
@@ -85,7 +86,8 @@ Why not auto-generate the entire FastAPI server on every change?
 
 Use a dedicated local virtualenv to generate Pydantic models from the spec. Schemas in `openapi.yaml` use DTO suffixes (TagEventDTO, ParticipantDTO), and the generated file is `models_api.py`.
 
-To generate again the API models after redefitinion of the OpenAPI definition, the next command with create a Python env to build up the new `models_api.py`:
+To generate again the API models after redefining the OpenAPI specification, the next command with create a Python env to build up a replace the current `models_api.py` file:
+
 
 ```bash
 python3 -m venv .venv

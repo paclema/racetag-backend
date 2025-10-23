@@ -5,6 +5,8 @@ info:
 servers:
   - url: http://localhost:8600
     description: Local Development Server
+security:
+  - ApiKeyAuth: []
 paths:
   /events/tag/batch:
     post:
@@ -54,6 +56,11 @@ paths:
               schema:
                 type: string
 components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
   schemas:
     TagEventDTO:
       type: object

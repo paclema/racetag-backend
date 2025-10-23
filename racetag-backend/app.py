@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import os
 from typing import Any, Dict, List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.security import APIKeyHeader
 
 from domain.race import RaceState
 from models_api import (
@@ -21,7 +23,25 @@ from models_api import (
 
 
 
-app = FastAPI(title="Racetag Backend")
+# API Key using env RACETAG_API_KEY
+API_KEY_HEADER_NAME = "X-API-Key"
+_API_KEY = os.getenv("RACETAG_API_KEY")
+_api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
+
+def require_api_key(api_key: str = Security(_api_key_header)) -> bool:
+    if not _API_KEY:
+        return True
+    if not api_key or api_key != _API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    return True
+
+# Global dependency only if RACETAG_API_KEY is set
+_global_deps = [Depends(require_api_key)] if _API_KEY else []
+
+app = FastAPI(
+    title="Racetag Backend", 
+    dependencies=_global_deps
+    )
 
 # CORS for local static frontend (adjust origins for production)
 app.add_middleware(

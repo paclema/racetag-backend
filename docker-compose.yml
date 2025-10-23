@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   racetag-backend:
     build: .
@@ -8,6 +6,8 @@ services:
     environment:
       # Port inside the container, defaults to 8600 if RACETAG_PORT is not set
       - PORT=${RACETAG_PORT:-8600}
+      # API key
+      - RACETAG_API_KEY=${RACETAG_API_KEY}
     ports:
       # Map host port to container port using RACETAG_PORT (defaults to 8600)
       - "${RACETAG_PORT:-8600}:${RACETAG_PORT:-8600}"

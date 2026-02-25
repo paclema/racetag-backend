@@ -24,6 +24,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BatchIngestResultDTO'
+
   /classification:
     get:
       summary: Current classification standings
@@ -35,6 +36,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClassificationDTO'
+
   /race:
     get:
       summary: Race state
@@ -45,6 +47,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RaceDTO'
+
   /stream:
     get:
       summary: Server-Sent Events stream for live updates
@@ -55,13 +58,89 @@ paths:
             text/event-stream:
               schema:
                 type: string
+
+  # ----------------------------
+  # Added endpoints (from flows)
+  # ----------------------------
+
+  /events:
+    post:
+      summary: Create event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreateDTO'
+      responses:
+        '200':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDTO'
+
+  /events/{event_id}/races:
+    post:
+      summary: Add race to event (create race under event)
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RaceCreateDTO'
+      responses:
+        '200':
+          description: Race created under event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventRaceDTO'
+
+  /events/{event_id}/users:
+    post:
+      summary: Create user (participant) for an event and assign to races
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateDTO'
+      responses:
+        '200':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+
 components:
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
       in: header
       name: X-API-Key
+
   schemas:
+    Uuid:
+      type: string
+      format: uuid
+
+    # ----------------------------
+    # Existing schemas
+    # ----------------------------
     TagEventDTO:
       type: object
       required: [source, reader_ip, reader_serial, timestamp, event_type, tag_id]
@@ -114,7 +193,7 @@ components:
       properties:
         events_processed:
           type: integer
-  
+
     ParticipantDTO:
       type: object
       required: [tag_id, laps, finished]
@@ -166,3 +245,164 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ParticipantDTO'
+
+    # ----------------------------
+    # Added schemas (from flows)
+    # ----------------------------
+
+    EventCreateDTO:
+      type: object
+      required: [eventName, eventDate, location, maxAmountOfParticipants]
+      properties:
+        eventName:
+          type: string
+          description: Unique event name
+        eventDate:
+          type: string
+          description: Time and date combined (as provided by UI)
+        location:
+          type: string
+        maxAmountOfParticipants:
+          type: number
+
+    EventDTO:
+      type: object
+      required:
+        [eventId, eventName, eventDate, eventCreationDate, location, maxAmountOfParticipants, eventCreator]
+      properties:
+        eventId:
+          $ref: '#/components/schemas/Uuid'
+        eventName:
+          type: string
+          description: Unique event name
+        eventDate:
+          type: string
+          description: Time and date combined (as stored/returned by BE)
+        eventCreationDate:
+          type: string
+        location:
+          type: string
+        maxAmountOfParticipants:
+          type: number
+        eventCreator:
+          $ref: '#/components/schemas/Uuid'
+          description: For now can be mocked
+
+    EventType:
+      type: string
+      enum: [MULTI-ROUNDS, ONE-FINISH]
+
+    RaceCreateDTO:
+      type: object
+      required: [eventName, eventType, startTime, maxAmountOfParticipants]
+      properties:
+        eventName:
+          type: string
+          description: Unique (kept as in UI contract)
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        startTime:
+          type: string
+          description: Time and date combined
+        maxAmountOfParticipants:
+          type: number
+
+    UserCreateDTO:
+      type: object
+      required:
+        [firstName, lastName, dateOfBirth, city, country, email, phone, team, licenseNumber, bibNumber, bibId, races]
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        team:
+          type: string
+        licenseNumber:
+          type: number
+        bibNumber:
+          type: number
+          description: Visual number
+        bibId:
+          $ref: '#/components/schemas/Uuid'
+          description: Technical id
+        races:
+          type: array
+          description: Array with UUIDs of selected races
+          items:
+            $ref: '#/components/schemas/Uuid'
+
+    EventRaceDTO:
+      type: object
+      required:
+        [eventId, raceId, eventName, eventType, startTime, maxAmountOfParticipants, eventCreator]
+      properties:
+        eventId:
+          $ref: '#/components/schemas/Uuid'
+          description: Main event id
+        raceId:
+          $ref: '#/components/schemas/Uuid'
+          description: Id of the created race
+        eventName:
+          type: string
+          description: Unique
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        startTime:
+          type: string
+          description: Time and date combined
+        maxAmountOfParticipants:
+          type: number
+        eventCreator:
+          $ref: '#/components/schemas/Uuid'
+          description: For now can be mocked
+
+    UserDTO:
+      type: object
+      required:
+        [userId, firstName, lastName, dateOfBirth, city, country, email, phone, team, licenseNumber, bibNumber, bibId, races, creatorId]
+      properties:
+        userId:
+          $ref: '#/components/schemas/Uuid'
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        team:
+          type: string
+        licenseNumber:
+          type: number
+        bibNumber:
+          type: number
+          description: Visual number
+        bibId:
+          $ref: '#/components/schemas/Uuid'
+          description: Technical id
+        races:
+          type: array
+          description: Array with UUIDs of selected races
+          items:
+            $ref: '#/components/schemas/Uuid'
+        creatorId:
+          $ref: '#/components/schemas/Uuid'
+          description: For now can be mocked

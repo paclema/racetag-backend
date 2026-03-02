@@ -2,15 +2,30 @@ openapi: 3.1.0
 info:
   title: Racetag Backend API
   version: 0.1.0
+  description: Real-time race tracking and classification API
 servers:
   - url: http://localhost:8600
     description: Local Development Server
 security:
   - ApiKeyAuth: []
+tags:
+  - name: Events
+    description: Event management
+  - name: Races
+    description: Race management and tracking
+  - name: Users
+    description: User/participant management
+  - name: Realtime
+    description: Real-time data streams and live updates
+
 paths:
   /events/tag/batch:
     post:
+      operationId: ingestTagBatch
+      tags:
+        - Races
       summary: Ingest a batch of tag events
+      description: Process RFID tag read events from readers
       requestBody:
         required: true
         content:
@@ -19,16 +34,30 @@ paths:
               $ref: '#/components/schemas/TagEventBatchDTO'
       responses:
         '200':
-          description: Batch processed summary
+          description: Batch processed successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/BatchIngestResultDTO'
 
-  /classification:
+  /events/{event_id}/races/{race_id}/classification:
     get:
-      summary: Current classification standings
+      operationId: getClassification
+      tags:
+        - Races
+      summary: Current race classification standings
       description: Returns a snapshot of standings at request time. For live updates, subscribe to the Server-Sent Events stream at /stream.
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: race_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
       responses:
         '200':
           description: Standings ordered by race rules
@@ -37,9 +66,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassificationDTO'
 
-  /race:
+  /events/{event_id}/races/{race_id}:
     get:
-      summary: Race state
+      operationId: getRace
+      tags:
+        - Races
+      summary: Get race state
+      description: Returns current race metadata and participants
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: race_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
       responses:
         '200':
           description: Current race metadata and participants
@@ -48,24 +92,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/RaceDTO'
 
-  /stream:
+  /events/{event_id}/races/{race_id}/stream:
     get:
-      summary: Server-Sent Events stream for live updates
+      operationId: streamRaceUpdates
+      tags:
+        - Realtime
+      summary: Subscribe to race live updates
+      description: Server-Sent Events stream for real-time lap and standings updates
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: race_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
       responses:
         '200':
           description: SSE stream of lap and standings updates
           content:
             text/event-stream:
               schema:
-                type: string
-
-  # ----------------------------
-  # Added endpoints (from flows)
-  # ----------------------------
+                $ref: '#/components/schemas/StreamEventDTO'
 
   /events:
     post:
-      summary: Create event
+      operationId: createEvent
+      tags:
+        - Events
+      summary: Create a new event
       requestBody:
         required: true
         content:
@@ -73,8 +131,8 @@ paths:
             schema:
               $ref: '#/components/schemas/EventCreateDTO'
       responses:
-        '200':
-          description: Event created
+        '201':
+          description: Event created successfully
           content:
             application/json:
               schema:
@@ -82,7 +140,10 @@ paths:
 
   /events/{event_id}/races:
     post:
-      summary: Add race to event (create race under event)
+      operationId: createRace
+      tags:
+        - Races
+      summary: Create a new race for an event
       parameters:
         - name: event_id
           in: path
@@ -96,8 +157,8 @@ paths:
             schema:
               $ref: '#/components/schemas/RaceCreateDTO'
       responses:
-        '200':
-          description: Race created under event
+        '201':
+          description: Race created successfully
           content:
             application/json:
               schema:
@@ -105,7 +166,11 @@ paths:
 
   /events/{event_id}/users:
     post:
-      summary: Create user (participant) for an event and assign to races
+      operationId: createUser
+      tags:
+        - Users
+      summary: Create a participant for an event
+      description: Register a new participant. Bib registration happens separately via /bib/stream and /bib endpoints
       parameters:
         - name: event_id
           in: path
@@ -119,13 +184,36 @@ paths:
             schema:
               $ref: '#/components/schemas/UserCreateDTO'
       responses:
-        '200':
-          description: User created
+        '201':
+          description: User created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserDTO'
 
+  /events/{event_id}/users/bib/stream:
+    get:
+      operationId: streamBibScan
+      tags:
+        - Users
+      summary: Stream for RFID chip scanning during registration
+      description: Open SSE stream and wait for user to scan their RFID chip. Use during user registration form to populate bib_id field
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: SSE stream emitting chip scan events
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/BibScanEventDTO'
+        '404':
+          description: Event not found
+        
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -138,30 +226,36 @@ components:
       type: string
       format: uuid
 
-    # ----------------------------
-    # Existing schemas
-    # ----------------------------
     TagEventDTO:
       type: object
       required: [source, reader_ip, reader_serial, timestamp, event_type, tag_id]
       properties:
         source:
           type: string
+          minLength: 1
           example: sirit-510
+          description: RFID reader source identifier
         reader_ip:
           type: string
+          format: ipv4
+          description: IP address of the reader
         reader_serial:
           type: string
+          minLength: 1
+          description: Serial number of the reader
         timestamp:
           type: string
-          description: ISO8601 with milliseconds and Z
+          format: date-time
+          description: ISO 8601 timestamp with milliseconds
           example: 2025-10-16T11:53:32.298Z
         event_type:
           type: string
           enum: [arrive, depart]
+          description: Type of tag event
         tag_id:
           type: string
-          description: Uppercase hex without 0x
+          pattern: '^[0-9A-F]+$'
+          description: Uppercase hexadecimal tag ID without 0x prefix
         session_id:
           type: integer
           nullable: true
@@ -171,6 +265,7 @@ components:
         rssi:
           type: integer
           nullable: true
+          description: Received signal strength indicator
         first:
           type: string
           nullable: true
@@ -193,6 +288,24 @@ components:
       properties:
         events_processed:
           type: integer
+          minimum: 0
+          description: Number of events successfully processed in the batch
+
+    StreamEventDTO:
+      type: object
+      description: Server-Sent Event data for real-time updates
+      properties:
+        event_type:
+          type: string
+          enum: [lap_recorded, standings_updated, race_started, race_finished]
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/ParticipantDTO'
+            - $ref: '#/components/schemas/ClassificationDTO'
+          description: Event payload (varies by event_type)
 
     ParticipantDTO:
       type: object
@@ -200,25 +313,32 @@ components:
       properties:
         tag_id:
           type: string
+          pattern: '^[0-9A-F]+$'
+          description: Uppercase hexadecimal tag ID
         laps:
           type: integer
+          minimum: 0
         last_pass_time:
           type: string
+          format: date-time
           nullable: true
         finish_time:
           type: string
+          format: date-time
           nullable: true
         finished:
           type: boolean
         total_time_ms:
           type: integer
+          minimum: 0
           nullable: true
         gap_ms:
           type: integer
           nullable: true
-          description: Time gap to the leader in milliseconds when on the same lap (0 for leader; null if lapped)
+          description: Time gap to leader in milliseconds (0 for leader; null if lapped)
         laps_behind:
           type: integer
+          minimum: 0
           nullable: true
           description: Number of laps behind the leader (null or 0 if on same lap)
 
@@ -235,174 +355,250 @@ components:
 
     RaceDTO:
       type: object
-      required: [total_laps, start_time, participants]
+      required: [race_id, event_id, total_laps, start_time, participants]
       properties:
+        race_id:
+          $ref: '#/components/schemas/Uuid'
+        event_id:
+          $ref: '#/components/schemas/Uuid'
         total_laps:
           type: integer
+          minimum: 1
         start_time:
           type: string
+          format: date-time
         participants:
           type: array
           items:
             $ref: '#/components/schemas/ParticipantDTO'
 
-    # ----------------------------
-    # Added schemas (from flows)
-    # ----------------------------
-
     EventCreateDTO:
       type: object
-      required: [eventName, eventDate, location, maxAmountOfParticipants]
+      required: [event_name, event_date, location, max_participants]
       properties:
-        eventName:
+        event_name:
           type: string
+          minLength: 1
+          maxLength: 255
           description: Unique event name
-        eventDate:
+        event_date:
           type: string
-          description: Time and date combined (as provided by UI)
+          format: date-time
+          description: Event date and time
         location:
           type: string
-        maxAmountOfParticipants:
-          type: number
+          minLength: 1
+          maxLength: 255
+        max_participants:
+          type: integer
+          minimum: 1
 
     EventDTO:
       type: object
       required:
-        [eventId, eventName, eventDate, eventCreationDate, location, maxAmountOfParticipants, eventCreator]
+        [event_id, event_name, event_date, event_creation_date, location, max_participants, event_creator]
       properties:
-        eventId:
+        event_id:
           $ref: '#/components/schemas/Uuid'
-        eventName:
+        event_name:
           type: string
+          minLength: 1
+          maxLength: 255
           description: Unique event name
-        eventDate:
+        event_date:
           type: string
-          description: Time and date combined (as stored/returned by BE)
-        eventCreationDate:
+          format: date-time
+        event_creation_date:
           type: string
+          format: date-time
         location:
           type: string
-        maxAmountOfParticipants:
-          type: number
-        eventCreator:
+          minLength: 1
+          maxLength: 255
+        max_participants:
+          type: integer
+          minimum: 1
+        event_creator:
           $ref: '#/components/schemas/Uuid'
-          description: For now can be mocked
+          description: User ID of event creator
 
-    EventType:
+    RaceType:
       type: string
-      enum: [MULTI-ROUNDS, ONE-FINISH]
+      enum: [MULTI_ROUNDS, ONE_FINISH]
+      description: Race format type
 
     RaceCreateDTO:
       type: object
-      required: [eventName, eventType, startTime, maxAmountOfParticipants]
+      required: [race_name, race_type, start_time, max_participants]
       properties:
-        eventName:
+        race_name:
           type: string
-          description: Unique (kept as in UI contract)
-        eventType:
-          $ref: '#/components/schemas/EventType'
-        startTime:
+          minLength: 1
+          maxLength: 255
+          description: Unique race name
+        race_type:
+          $ref: '#/components/schemas/RaceType'
+        start_time:
           type: string
-          description: Time and date combined
-        maxAmountOfParticipants:
-          type: number
+          format: date-time
+        max_participants:
+          type: integer
+          minimum: 1
 
     UserCreateDTO:
       type: object
       required:
-        [firstName, lastName, dateOfBirth, city, country, email, phone, team, licenseNumber, bibNumber, bibId, races]
+        [first_name, last_name, date_of_birth, city, country, email, phone, team, license_number, bib_number, bib_id, races]
       properties:
-        firstName:
+        first_name:
           type: string
-        lastName:
+          minLength: 1
+          maxLength: 255
+        last_name:
           type: string
-        dateOfBirth:
+          minLength: 1
+          maxLength: 255
+        date_of_birth:
           type: string
+          format: date
         city:
           type: string
+          minLength: 1
+          maxLength: 255
         country:
           type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO 3166-1 alpha-2 country code
         email:
           type: string
+          format: email
         phone:
           type: string
+          minLength: 1
+          maxLength: 20
         team:
           type: string
-        licenseNumber:
-          type: number
-        bibNumber:
-          type: number
-          description: Visual number
-        bibId:
+          minLength: 1
+          maxLength: 255
+        license_number:
+          type: integer
+          minimum: 1
+        bib_number:
+          type: integer
+          minimum: 1
+          description: Visual bib number
+        bib_id:
           $ref: '#/components/schemas/Uuid'
-          description: Technical id
+          description: Technical bib identifier (scanned via chip stream)
         races:
           type: array
-          description: Array with UUIDs of selected races
+          description: Array of race UUIDs for participant registration
           items:
             $ref: '#/components/schemas/Uuid'
+          minItems: 1
 
     EventRaceDTO:
       type: object
       required:
-        [eventId, raceId, eventName, eventType, startTime, maxAmountOfParticipants, eventCreator]
+        [event_id, race_id, race_name, race_type, start_time, max_participants, event_creator]
       properties:
-        eventId:
+        event_id:
           $ref: '#/components/schemas/Uuid'
-          description: Main event id
-        raceId:
+          description: Parent event ID
+        race_id:
           $ref: '#/components/schemas/Uuid'
-          description: Id of the created race
-        eventName:
+          description: Newly created race ID
+        race_name:
           type: string
-          description: Unique
-        eventType:
-          $ref: '#/components/schemas/EventType'
-        startTime:
+          minLength: 1
+          maxLength: 255
+        race_type:
+          $ref: '#/components/schemas/RaceType'
+        start_time:
           type: string
-          description: Time and date combined
-        maxAmountOfParticipants:
-          type: number
-        eventCreator:
+          format: date-time
+        max_participants:
+          type: integer
+          minimum: 1
+        event_creator:
           $ref: '#/components/schemas/Uuid'
-          description: For now can be mocked
+          description: Event creator user ID
 
     UserDTO:
       type: object
       required:
-        [userId, firstName, lastName, dateOfBirth, city, country, email, phone, team, licenseNumber, bibNumber, bibId, races, creatorId]
+        [user_id, first_name, last_name, date_of_birth, city, country, email, phone, team, license_number, bib_number, races, creator_id]
       properties:
-        userId:
+        user_id:
           $ref: '#/components/schemas/Uuid'
-        firstName:
+        first_name:
           type: string
-        lastName:
+          minLength: 1
+          maxLength: 255
+        last_name:
           type: string
-        dateOfBirth:
+          minLength: 1
+          maxLength: 255
+        date_of_birth:
           type: string
+          format: date
         city:
           type: string
+          minLength: 1
+          maxLength: 255
         country:
           type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO 3166-1 alpha-2 country code
         email:
           type: string
+          format: email
         phone:
           type: string
+          minLength: 1
+          maxLength: 20
         team:
           type: string
-        licenseNumber:
-          type: number
-        bibNumber:
-          type: number
-          description: Visual number
-        bibId:
+          minLength: 1
+          maxLength: 255
+        license_number:
+          type: integer
+          minimum: 1
+        bib_number:
+          type: integer
+          minimum: 1
+          description: Visual bib number
+        bib_id:
           $ref: '#/components/schemas/Uuid'
-          description: Technical id
+          description: Technical bib identifier from scanned chip
         races:
           type: array
-          description: Array with UUIDs of selected races
+          description: Race UUIDs participant is registered for
           items:
             $ref: '#/components/schemas/Uuid'
-        creatorId:
+        creator_id:
           $ref: '#/components/schemas/Uuid'
-          description: For now can be mocked
+          description: User ID who created this participant
+
+    BibScanEventDTO:
+      type: object
+      description: RFID chip scan event from "Read Chip Id" stream
+      properties:
+        event_type:
+          type: string
+          enum: [chip_detected, scan_timeout]
+          description: Event type
+        timestamp:
+          type: string
+          format: date-time
+        tag_id:
+          type: string
+          pattern: '^[0-9A-F]+$'
+          nullable: true
+          description: Scanned RFID tag ID in uppercase hex (null if timeout)
+        message:
+          type: string
+          description: Human-readable message (e.g., "Chip scanned" or "Timeout waiting for chip")
+

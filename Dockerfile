@@ -4,8 +4,9 @@
 FROM python:3.13.9-slim AS codegen
 
 # Install tools first so this layer is cached across builds
+COPY requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
-	&& pip install --no-cache-dir datamodel-code-generator==0.35.0 pydantic==2.9.0
+	&& pip install --no-cache-dir -r /code/requirements.txt datamodel-code-generator==0.35.0
 
 WORKDIR /code
 # Copy only the spec to keep cache efficient; changing other files won't invalidate codegen
@@ -39,21 +40,22 @@ EXPOSE 8600
 # Move to the python package folder
 WORKDIR /app/racetag-backend
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+	CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/docs')" || exit 1
+
 # Start FastAPI app (module path is racetag-backend/app.py), honor PORT env variable
 CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
-
-#############################################
-# Stage: runtime (app image with codegen output copied in)
-#############################################
-FROM runtime-base AS runtime
-# Overwrite generated API models to keep image in sync with OpenAPI
-COPY --from=codegen /openapi_build/models_api.py /app/racetag-backend/models_api.py
 
 #############################################
 # Stage: runtime-nocodegen (optional, skip codegen)
 # Build with: docker build --target runtime-nocodegen -t racetag-backend .
 #############################################
-FROM runtime AS runtime-nocodegen
+FROM runtime-base AS runtime-nocodegen
 
-# Keep runtime as the default final stage so `docker build .` uses codegen
-FROM runtime AS final
+#############################################
+# Stage: runtime (app image with codegen output copied in)
+# Keep as the last stage so `docker build .` uses codegen by default
+#############################################
+FROM runtime-base AS runtime
+# Overwrite generated API models to keep image in sync with OpenAPI
+COPY --from=codegen /openapi_build/models_api.py /app/racetag-backend/models_api.py

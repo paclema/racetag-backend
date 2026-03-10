@@ -27,6 +27,7 @@ uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port 8600
 # Optional: configure env variables first
 export PORT=8600
 export RACETAG_API_KEY=changeme
+export RACE_TOTAL_LAPS=5
 
 uvicorn --app-dir racetag-backend app:app --reload --host 0.0.0.0 --port ${PORT}
 

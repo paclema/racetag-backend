@@ -26,6 +26,7 @@ from models_api import (
 # API Key using env RACETAG_API_KEY
 API_KEY_HEADER_NAME = "X-API-Key"
 _API_KEY = os.getenv("RACETAG_API_KEY")
+_RACE_TOTAL_LAPS = int(os.getenv("RACE_TOTAL_LAPS", "5"))
 _api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
 
 def require_api_key(api_key: str = Security(_api_key_header)) -> bool:
@@ -54,7 +55,7 @@ app.add_middleware(
 
 
 # Global single race for MVP
-race = RaceState(total_laps=5)
+race = RaceState(total_laps=_RACE_TOTAL_LAPS)
 
 # Debug/event store
 events: List[TagEventDTO] = []
